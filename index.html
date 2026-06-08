@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finera - Smart Finance Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error("Global Error Intercepted:", message, "at", source, ":", lineno);
+            // Ignore generic cross-origin script errors or browser extension errors (which say "Script error." or have no line/source)
+            if (message === "Script error." || lineno === 0 || !source) {
+                return false;
+            }
+            // Only trigger overlay for errors coming from our application code files
+            if (typeof source === 'string' && source.indexOf('db.js') === -1 && source.indexOf('app.js') === -1) {
+                return false;
+            }
+            const errDiv = document.getElementById('global-error-overlay');
+            if (errDiv) {
+                errDiv.style.display = 'block';
+                errDiv.querySelector('.err-msg').textContent = message;
+                errDiv.querySelector('.err-stack').textContent = error ? error.stack : `Source: ${source}\nLine: ${lineno}\nCol: ${colno}`;
+            }
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error("Unhandled Rejection Intercepted:", event.reason);
+            const stackStr = event.reason && event.reason.stack ? event.reason.stack : '';
+            // Only trigger overlay for promise rejections originating from our files
+            if (stackStr && stackStr.indexOf('db.js') === -1 && stackStr.indexOf('app.js') === -1) {
+                return;
+            }
+            const errDiv = document.getElementById('global-error-overlay');
+            if (errDiv) {
+                errDiv.style.display = 'block';
+                errDiv.querySelector('.err-msg').textContent = "Unhandled promise rejection: " + (event.reason && event.reason.message ? event.reason.message : event.reason);
+                errDiv.querySelector('.err-stack').textContent = stackStr;
+            }
+        });
+    </script>
+</head>
+<body>
+    <!-- Diagnostics Overlay (Hidden by default, shown on error) -->
+    <div id="global-error-overlay" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); color: #f43f5e; z-index: 999999; padding: 40px; font-family: 'Consolas', 'Courier New', monospace; overflow-y: auto;">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 20px; border-bottom: 2px solid rgba(244, 63, 94, 0.2); padding-bottom: 10px; display: flex; align-items: center; gap: 12px;">
+                <span class="material-icons-round notranslate" style="font-size: 2.5rem;">warning</span>
+                Sistem Yükleme Hatası (Diagnostics)
+            </h1>
+            <p style="font-size: 1.1rem; color: #f8fafc; margin-bottom: 20px; font-weight: 600;">Uygulama başlatılırken kritik bir tarayıcı hatası oluştu. Lütfen bu hatayı geliştiriciye iletin:</p>
+            <div class="err-msg" style="background: rgba(244, 63, 94, 0.1); border-left: 4px solid #f43f5e; padding: 15px; border-radius: 4px; font-size: 1.05rem; font-weight: bold; margin-bottom: 25px; color: #fda4af;"></div>
+            <h3 style="color: #cbd5e1; font-size: 1.1rem; margin-bottom: 10px;">Hata Detayları / Stack Trace:</h3>
+            <pre class="err-stack" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 8px; font-size: 0.9rem; color: #94a3b8; white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto;"></pre>
+            <button onclick="localStorage.clear(); location.reload();" style="margin-top: 30px; background: #f43f5e; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-family: inherit;">
+                <span class="material-icons-round notranslate">refresh</span>
+                Önbelleği Temizle ve Yeniden Yükle
+            </button>
+        </div>
+    </div>
+
+    <!-- Masterpiece Visual Overlay -->
+    <div id="app-depth-overlay" style="position: fixed; inset: 0; background: radial-gradient(circle at center, rgba(2, 6, 23, 0.2), rgba(2, 6, 23, 0.85)); z-index: -1;"></div>
+    
+    <!-- AUTHENTICATION WRAPPER -->
+    <div id="auth-wrapper" class="auth-wrapper hidden">
+        <!-- Login View -->
+        <div id="login-view" class="auth-view active">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <div class="brand-logo-large" style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.2); margin: 0 auto 20px auto;">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 4C6 3.44772 6.44772 3 7 3H17C17.5523 3 18 3.44772 18 4V6C18 6.55228 17.5523 7 17 7H10V10H15C15.5523 10 16 10.4477 16 11V13C16 13.5523 15.5523 14 15 14H10V20C10 20.5523 9.55228 21 9 21H7C6.44772 21 6 20.5523 6 20V4Z" fill="url(#logo-grad-large)"/>
+                            <circle cx="19" cy="5" r="2.5" fill="#8b5cf6" />
+                            <defs>
+                                <linearGradient id="logo-grad-large" x1="6" y1="3" x2="18" y2="21" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#3b82f6"/>
+                                    <stop offset="100%" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h2>Welcome Back</h2>
+                    <p>Enter your details to access your dashboard</p>
+                </div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required placeholder="••••••••">
+                    </div>
+                    <div id="login-error" class="auth-error-msg hidden">Invalid credentials.</div>
+                    <button type="submit" class="btn btn-primary w-100">Sign In</button>
+                    <div class="auth-switch">
+                        Don't have an account? <a href="#" id="go-to-signup">Sign up</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Signup View -->
+        <div id="signup-view" class="auth-view hidden">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <div class="brand-logo-large" style="margin-bottom: 20px; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.2); margin: 0 auto 20px auto;">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 4C6 3.44772 6.44772 3 7 3H17C17.5523 3 18 3.44772 18 4V6C18 6.55228 17.5523 7 17 7H10V10H15C15.5523 10 16 10.4477 16 11V13C16 13.5523 15.5523 14 15 14H10V20C10 20.5523 9.55228 21 9 21H7C6.44772 21 6 20.5523 6 20V4Z" fill="url(#logo-grad-large)"/>
+                            <circle cx="19" cy="5" r="2.5" fill="#8b5cf6" />
+                            <defs>
+                                <linearGradient id="logo-grad-large" x1="6" y1="3" x2="18" y2="21" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#3b82f6"/>
+                                    <stop offset="100%" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h2>Create Account</h2>
+                    <p>Start managing your finances today</p>
+                </div>
+                <form id="signup-form">
+                    <div class="form-group">
+                        <label for="signup-name">Full Name</label>
+                        <input type="text" id="signup-name" required placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" required minlength="6" placeholder="••••••••">
+                    </div>
+                    <div id="signup-error" class="auth-error-msg hidden">Error creating account.</div>
+                    <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+                    <div class="auth-switch">
+                        Already have an account? <a href="#" id="go-to-login">Log in</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-wrapper" class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand-box">
+                <div class="brand-logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 4C6 3.44772 6.44772 3 7 3H17C17.5523 3 18 3.44772 18 4V6C18 6.55228 17.5523 7 17 7H10V10H15C15.5523 10 16 10.4477 16 11V13C16 13.5523 15.5523 14 15 14H10V20C10 20.5523 9.55228 21 9 21H7C6.44772 21 6 20.5523 6 20V4Z" fill="url(#logo-grad-sidebar)"/>
+                        <circle cx="19" cy="5" r="2.5" fill="#8b5cf6" />
+                        <defs>
+                            <linearGradient id="logo-grad-sidebar" x1="6" y1="3" x2="18" y2="21" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#3b82f6"/>
+                                <stop offset="100%" stop-color="#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h2 class="brand-name">Finera</h2>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-target="portfolio-view">
+                    <span class="material-icons-round notranslate">analytics</span>
+                    <span>Portföy Özeti</span>
+                </button>
+                <div class="nav-divider">Analiz & İşlemler</div>
+                <button class="nav-item" data-target="dashboard">
+                    <span class="material-icons-round notranslate">dashboard</span>
+                    <span>Müşteri Detayı</span>
+                </button>
+                <button class="nav-item" data-target="add-transaction">
+                    <span class="material-icons-round notranslate">add_circle</span>
+                    <span>İşlem Ekle</span>
+                </button>
+                <button class="nav-item" data-target="transactions-list">
+                    <span class="material-icons-round notranslate">list_alt</span>
+                    <span>İşlemler</span>
+                </button>
+                <button class="nav-item" data-target="bank-offers-view">
+                    <span class="material-icons-round notranslate">account_balance</span>
+                    <span>Bankalar & Teklifler</span>
+                </button>
+                <button class="nav-item" data-target="wealth-mgmt-view">
+                    <span class="material-icons-round notranslate">auto_graph</span>
+                    <span>Varlık Yönetimi</span>
+                </button>
+                <button class="nav-item" data-target="financial-gps-view">
+                    <span class="material-icons-round notranslate">explore</span>
+                    <span>Finansal GPS</span>
+                </button>
+                <button class="nav-item" data-target="ai-decision-view">
+                    <span class="material-icons-round notranslate">psychology</span>
+                    <span>AI Karar Asistanı</span>
+                </button>
+                <button class="nav-item" data-target="fomo-wall-view">
+                    <span class="material-icons-round notranslate">track_changes</span>
+                    <span>FOMO Duvarı</span>
+                </button>
+
+                <button class="nav-item" data-target="market-intel-view">
+                    <span class="material-icons-round notranslate">public</span>
+                    <span>Piyasa Analizi</span>
+                </button>
+                <button class="nav-item" data-target="system-pulse-view">
+                    <span class="material-icons-round notranslate">settings_input_antenna</span>
+                    <span>Sistem Nabzı</span>
+                </button>
+            </nav>
+
+
+
+            <div class="user-profile">
+                <div class="avatar" id="user-avatar-initial">U</div>
+                <div class="user-info">
+                    <div id="sidebar-user-name">User Name</div>
+                    <div class="security-actions">
+                        <button class="sec-btn" id="logout-btn"><span class="material-icons-round notranslate">manage_accounts</span> Account Settings</button>
+                        <button class="sec-btn icon-only" title="2FA Settings"><span class="material-icons-round notranslate">security</span></button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- HEADER -->
+            <header class="topbar">
+                <div class="topbar-inner">
+                    <h1 id="page-title">Executive Command Center</h1>
+                    <div class="topbar-actions">
+                        <div class="card pulse-node" style="padding: 6px 16px; display: flex; align-items: center; gap: 10px; border-radius: 30px; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); border-width: 1px;">
+                             <div style="width: 20px; height: 20px; position: relative;">
+                                <canvas id="headerRiskGauge" width="20" height="20"></canvas>
+                             </div>
+                             <span id="header-ai-badge" class="ai-risk-badge" style="margin: 0; border: none; background: transparent; font-size: 0.7rem; color: #10b981; font-weight: 800;">ACTIVE OVERSIGHT</span>
+                        </div>
+                        <button class="icon-btn" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer;"><span class="material-icons-round notranslate">notifications</span></button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- VIEWS CONTAINER -->
+            <div id="view-container">
+                <!-- Portfolio View (Executive Hub) -->
+                <div id="portfolio-view" class="view">
+                    <div class="portfolio-header">
+                        <h1>Institutional Executive Portfolio Hub</h1>
+                        <p>Real-time behavioral risk oversight across managed accounts.</p>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="card stat-card">
+                            <span class="material-icons-round notranslate">account_balance_wallet</span>
+                            <div>
+                                <p class="stat-label">Total Portfolio Assets</p>
+                                <h3 id="port-total-assets">$0.00</h3>
+                            </div>
+                        </div>
+                        <div class="card stat-card warning">
+                            <span class="material-icons-round notranslate">error_outline</span>
+                            <div>
+                                <p class="stat-label">High-Risk Accounts</p>
+                                <h3 id="port-high-risk">0</h3>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <span class="material-icons-round notranslate">security</span>
+                            <div>
+                                <p class="stat-label">Avg. Resilience Grade</p>
+                                <h3 id="port-avg-grade">B-</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card table-card" style="margin-top: 24px;">
+                        <div class="table-header">
+                            <h2>Customer Risk Matrix</h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem;">Select a profile to drill-down into the 180-Day SRI Intelligence dashboard.</p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Müşteri Adı</th>
+                                        <th>Segment</th>
+                                        <th>Resilience Grade</th>
+                                        <th>Mali Puan</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="portfolio-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard View -->
+                <div id="dashboard" class="view active">
+                    
+                    <!-- AI Insights Alert Area -->
+                    <div id="ai-insights-container"></div>
+
+                    <!-- MANAGER'S RISK ACTION CENTER (PROACTIVE REMEDIATION) -->
+                    <div id="risk-action-center" class="card risk-action-card hidden" style="margin-bottom: 24px; border-left-width: 6px;">
+                        <div class="risk-header">
+                            <div class="risk-title-group">
+                                <span class="material-icons-round risk-status-icon">speed</span>
+                                <div>
+                                    <h3>Manager Risk Action Center</h3>
+                                    <p id="risk-summary-text">Analyzing Financial Velocity...</p>
+                                </div>
+                            </div>
+                            <div id="traffic-light-indicator" class="traffic-light"></div>
+                        </div>
+                        <div class="risk-body">
+                            <div class="insolvency-timeline">
+                                <span class="material-icons-round notranslate">event_busy</span>
+                                <span id="insolvency-label">Next Milestone: Stable</span>
+                            </div>
+                            <div id="pre-emptive-actions" class="action-btn-group">
+                                <!-- Dynamic Buttons Injected Here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-cards">
+                        <div class="card summary-card gradient-primary">
+                            <div class="card-icon"><span class="material-icons-round notranslate">account_balance_wallet</span></div>
+                            <div class="card-content">
+                                <h3>Total Balance</h3>
+                                <div class="value" id="val-balance">$0.00</div>
+                            </div>
+                        </div>
+                        <div class="card summary-card success">
+                            <div class="card-icon"><span class="material-icons-round notranslate">trending_up</span></div>
+                            <div class="card-content">
+                                <h3>Total Income</h3>
+                                <div class="value" id="val-income">$0.00</div>
+                            </div>
+                        </div>
+                        <div class="card summary-card danger">
+                            <div class="card-icon"><span class="material-icons-round notranslate">trending_down</span></div>
+                            <div class="card-content">
+                                <h3>Total Expense</h3>
+                                <div class="value" id="val-expense">$0.00</div>
+                            </div>
+                        </div>
+                        <div class="card summary-card info">
+                            <div class="card-icon"><span class="material-icons-round notranslate">health_and_safety</span></div>
+                            <div class="card-content">
+                                <h3>Financial Score</h3>
+                                <div class="value" id="val-score">0/100</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 90-DAY CASH FLOW FORECAST (Executive View) -->
+                    <div class="card chart-container forecast-card full-width" style="margin-bottom: 24px;">
+                        <div class="card-header-flex">
+                            <h3>90-Day Cash Flow Forecast (Nakit Akışı Tahmini)</h3>
+                            <div class="forecast-legend">
+                                <span class="legend-item"><span class="dot actual"></span> Actuals</span>
+                                <span class="legend-item"><span class="dot scenario"></span> Simulation</span>
+                            </div>
+                        </div>
+                        <div class="forecast-canvas-wrapper" style="height: 300px;">
+                            <canvas id="forecastChart"></canvas>
+                        </div>
+                        <div class="what-if-inputs">
+                            <div class="input-wrapper">
+                                <label>Yeni Kredi Tutarı (₺)</label>
+                                <input type="number" id="sim-loan" placeholder="örn. 170000" />
+                            </div>
+                            <div class="input-wrapper">
+                                <label>Tahmini Gider (₺)</label>
+                                <input type="number" id="sim-expense" placeholder="örn. 50000" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card optimization-card">
+                        <h3><span class="material-icons-round notranslate" style="color:var(--brand-primary); vertical-align: middle; margin-right: 8px;">tips_and_updates</span> Akıllı Optimizasyon (Smart Optimization Suggestions)</h3>
+                        <ul class="optimization-list">
+                            <li class="opt-item warning">
+                                <span class="material-icons-round icon">analytics</span>
+                                <div class="opt-text">
+                                    <strong>Anomali Tespiti:</strong> Market harcamanız %20 arttı (Özet: 40.800 ₺'den 48.960 ₺'ye).
+                                </div>
+                            </li>
+                            <li class="opt-item success">
+                                <span class="material-icons-round icon">subscriptions</span>
+                                <div class="opt-text">
+                                    <strong>Abonelik Takibi:</strong> 2 kullanılmayan yazılım tespit edildi. 1.700 ₺/ay tasarruf edilebilir.
+                                </div>
+                            </li>
+                            <li class="opt-item danger">
+                                <span class="material-icons-round icon">event_busy</span>
+                                <div class="opt-text">
+                                    <strong>Gecikme Önleme:</strong> KDV ödemesi 3 gün kaldı (Hazırla).
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <section id="ai-projections" class="section-container">
+                        <h2>AI Metrics & Liquidity</h2>
+                        <div class="projections-grid" style="grid-template-columns: 1fr;">
+                            <div class="card chart-container gauge-card">
+                                <h3>Likidite Oranı & Risk Skoru</h3>
+                                <div class="gauge-wrapper">
+                                    <canvas id="liquidityGauge"></canvas>
+                                    <div id="liquidity-ratio-label">1.0x</div>
+                                </div>
+                                <h4 class="mini-title" style="margin-top: 20px;">Monthly Risk Score History</h4>
+                                <div class="risk-history-wrapper">
+                                    <canvas id="riskScoreHistory"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="dashboard-grid">
+                        <div class="card chart-container">
+                            <h3>Harcama Trendi</h3>
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                        <div class="card chart-container">
+                            <h3>Expenses by Category</h3>
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- NEXT BEST ACTION (NBA) GRID -->
+                    <section class="nba-section">
+                        <h2>Next Best Action (Recommended Strategies)</h2>
+                        <div class="nba-grid">
+                            <div class="card nba-card group-a">
+                                <span class="nba-tag">Liquidity Boost</span>
+                                <h4>Debt Consolidation Loan</h4>
+                                <p>Based on your current debt-to-income ratio, consolidating your high-interest cards could save you 4.000 ₺/mo.</p>
+                                <button class="nba-action-btn">Analyze Savings</button>
+                            </div>
+                            <div class="card nba-card group-b">
+                                <span class="nba-tag">Asset Protection</span>
+                                <h4>Premium Life Insurance</h4>
+                                <p>Detected significant household spend increase. Ensure family protection with our AI-optimized policy.</p>
+                                <button class="nba-action-btn">Get Quote</button>
+                            </div>
+                            <div class="card nba-card group-c">
+                                <span class="nba-tag">Yield Optimization</span>
+                                <h4>Gold Savings Account</h4>
+                                <p>You have a 120.000 ₺ surplus in a low-interest account. Moving to Gold yields 4.2% APY.</p>
+                                <button class="nba-action-btn">Transfer Now</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="dashboard-grid">
+                        <!-- Early Warning System Panel -->
+                        <div class="card early-warning-panel full-width">
+                            <h3>Early Warning System (Active Alerts)</h3>
+                            <div class="alert-item">
+                                <div class="status-indicator red"></div>
+                                <div class="alert-content">
+                                    <h4>High Burn Rate Detected</h4>
+                                    <p>Discretionary spending up 45% in 'Entertainment' vs last month's averages.</p>
+                                </div>
+                            </div>
+                            <div class="alert-item">
+                                <div class="status-indicator amber"></div>
+                                <div class="alert-content">
+                                    <h4>Unusual Subscription Spike</h4>
+                                    <p>Incoming recurring bill from 'Adobe' is 20% higher than historical norm.</p>
+                                </div>
+                            </div>
+                            <div class="alert-item">
+                                <div class="status-indicator green"></div>
+                                <div class="alert-content">
+                                    <h4>Liquidity Buffer Stable</h4>
+                                    <p>Operational cash-flow covers all fixed liabilities for the next 45 days.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Corporate Finance Block -->
+                        <div class="card corporate-finance-card full-width">
+                            <div class="corp-header">
+                                <h3><span class="material-icons-round notranslate">account_balance</span> Corporate Finance</h3>
+                                <div class="tax-badge">Tahmini Vergi Dilimi: 22%</div>
+                            </div>
+                            <div class="corp-content">
+                                <div class="tax-calendar-widget">
+                                    <h4>Vergi Planlama Takvimi</h4>
+                                    <div class="mini-calendar">
+                                        <div class="cal-header">Pzt</div><div class="cal-header">Sal</div><div class="cal-header">Çar</div><div class="cal-header">Per</div><div class="cal-header">Cum</div><div class="cal-header">Cmt</div><div class="cal-header">Paz</div>
+                                        <div class="cal-day empty"></div><div class="cal-day empty"></div><div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div>
+                                        <div class="cal-day tax-due" title="KDV Ödeme Günü">
+                                            4
+                                            <span class="material-icons-round tax-icon">warning</span>
+                                        </div>
+                                        <div class="cal-day">5</div><div class="cal-day">6</div><div class="cal-day">7</div><div class="cal-day">8</div><div class="cal-day">9</div><div class="cal-day">10</div><div class="cal-day">11</div>
+                                        <div class="cal-day">12</div><div class="cal-day">13</div><div class="cal-day">14</div><div class="cal-day">15</div><div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day">18</div>
+                                        <div class="cal-day">19</div><div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div>
+                                        <div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day">28</div><div class="cal-day">29</div><div class="cal-day">30</div>
+                                    </div>
+                                </div>
+                                <div class="tax-info-summary">
+                                    <p>Bu ay beklenen KDV yükümlülüğü: <strong>83.300 ₺</strong></p>
+                                    <p>Sonraki Geçici Vergi: <strong>15 Mayıs</strong></p>
+                                    <button class="action-btn-sm">KDV Raporu Hazırla</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card advanced-metrics">
+                            <h3>Advanced Metrics</h3>
+                            <div class="metric-item">
+                                <span class="material-icons-round notranslate">hourglass_bottom</span>
+                                <div>
+                                    <p class="metric-label">Burn Rate Estimate</p>
+                                    <h4 id="val-burn-rate">Calculating...</h4>
+                                </div>
+                            </div>
+                            <div class="metric-item">
+                                <span class="material-icons-round notranslate">subscriptions</span>
+                                <div>
+                                    <p class="metric-label">Monthly Subscriptions</p>
+                                    <h4 id="val-subs">$0.00</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Transaction View -->
+                <div id="add-transaction" class="view hidden">
+                    <div class="card form-card">
+                        <h2>Record New Transaction</h2>
+                        <form id="transaction-form">
+                            <div class="form-group">
+                                <label for="tx-type">Transaction Type</label>
+                                <select id="tx-type" name="type" required>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                    <option value="subscription">Uygulama Aboneliği</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="tx-currency">Currency</label>
+                                <select id="tx-currency" name="currency" required>
+                                    <option value="TRY" class="notranslate">Türk Lirası (₺)</option>
+                                    <option value="USD" selected class="notranslate">Dolar ($)</option>
+                                    <option value="EUR" class="notranslate">Euro (€)</option>
+                                    <option value="GBP" class="notranslate">Sterlin (£)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label id="lbl-tx-amount" for="tx-amount">Amount</label>
+                                <input type="number" id="tx-amount" name="amount" min="0.01" step="0.01" required placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label id="lbl-tx-category" for="tx-category">Category</label>
+                                <input type="text" id="tx-category" name="category" required placeholder="e.g. Groceries, Rent, Salary">
+                            </div>
+                            <div class="form-group">
+                                <label id="lbl-tx-date" for="tx-date">Date</label>
+                                <input type="date" id="tx-date" name="date" required>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 18px; font-weight: 800; font-size: 1rem; border-radius: 12px;">İŞLEMİ KAYDET</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Bank Offers View -->
+                <div id="bank-offers-view" class="view hidden">
+                    <div class="portfolio-header">
+                        <h1>Financial Strategy & Bank Offers</h1>
+                        <p>AI-driven interest rate monitoring and personalized loan matching based on your Mali Puan.</p>
+                    </div>
+
+                    <!-- Interactive Loan Calculator Widget -->
+                    <div class="card loan-calc-card" style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 20px; color: var(--brand-primary); display: flex; align-items: center; gap: 8px; font-weight: 800;">
+                            <span class="material-icons-round notranslate">calculate</span>
+                            İnteraktif İhtiyaç Kredisi Hesaplama & Kar Oranları
+                        </h3>
+                        <div class="calc-grid">
+                            <div class="calc-input-group">
+                                <div class="calc-slider-wrapper">
+                                    <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700; display: flex; justify-content: space-between;">
+                                        <span>Kredi Tutarı</span>
+                                        <span id="calc-amount-label" style="color: var(--brand-primary);">50.000 TL</span>
+                                    </label>
+                                    <input type="range" id="calc-amount-slider" min="5000" max="500000" step="5000" value="50000" style="width: 100%; accent-color: var(--brand-primary); cursor: pointer;">
+                                </div>
+                                <input type="number" id="calc-amount-input" value="50000" min="5000" max="1000000" step="1000" class="calc-text-input">
+                            </div>
+                            <div class="calc-input-group">
+                                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Vade Süresi (Ay)</label>
+                                <select id="calc-maturity-select" class="calc-select">
+                                    <option value="3">3 Ay</option>
+                                    <option value="6">6 Ay</option>
+                                    <option value="9">9 Ay</option>
+                                    <option value="12" selected>12 Ay</option>
+                                    <option value="18">18 Ay</option>
+                                    <option value="24">24 Ay</option>
+                                    <option value="36">36 Ay</option>
+                                </select>
+                            </div>
+                            <div class="calc-input-group">
+                                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Platform</label>
+                                <select id="calc-source-select" class="calc-select">
+                                    <option value="all" selected>Tüm Platformlar</option>
+                                    <option value="HangiKredi">HangiKredi</option>
+                                    <option value="HesapKurdu">HesapKurdu</option>
+                                    <option value="Enuygun Finans">Enuygun Finans</option>
+                                    <option value="Mukayese">Mukayese</option>
+                                    <option value="Kredim">Kredim</option>
+                                    <option value="Bankalar.org">Bankalar.org</option>
+                                    <option value="FinansalKredi">FinansalKredi</option>
+                                </select>
+                            </div>
+                            <div class="calc-input-group">
+                                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Banka Seçimi</label>
+                                <select id="calc-bank-select" class="calc-select">
+                                    <option value="all" selected>Tüm Bankalar</option>
+                                </select>
+                            </div>
+                            <button id="calc-trigger-btn" class="btn btn-primary calc-btn">
+                                <span class="material-icons-round notranslate">bolt</span>
+                                HESAPLA
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Recommendation Highlight -->
+                    <div id="bank-recommendation-hero" class="card bank-offer-card" style="margin-bottom: 24px; border-top: 5px solid var(--brand-primary); padding: 30px;">
+                         <div style="display: flex; justify-content: space-between; align-items: center;">
+                             <div>
+                                 <span class="recommended-badge">SİSTEM ÖNERİSİ</span>
+                                 <h2 id="rec-bank-title" style="margin-bottom: 8px;">Analiz Ediliyor...</h2>
+                                 <p id="rec-bank-reason" style="color: var(--text-muted); max-width: 500px;">Profilinize en uygun banka teklifi hesaplanıyor.</p>
+                             </div>
+                             <button class="btn btn-primary" id="rec-bank-apply-btn">Hemen Başvur</button>
+                         </div>
+                    </div>
+
+                    <div class="card table-card">
+                        <div class="table-header">
+                            <h2>Market Comparison Matrix (Çoklu Platform Canlı Karşılaştırma)</h2>
+                            <p style="color: var(--text-muted); font-size: 0.85rem;">Yukarıdaki tutar, vade ve platform seçimine göre en güncel kredi ve faiz/kar payı oranları karşılaştırması.</p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Banka</th>
+                                        <th>Kaynak Platform</th>
+                                        <th>Kredi Ürünü</th>
+                                        <th>Aylık Faiz Oranı</th>
+                                        <th>Yıllık Maliyet Oranı</th>
+                                        <th>Aylık Taksit</th>
+                                        <th>Toplam Geri Ödeme</th>
+                                        <th>İşlem / Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bank-rates-table">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Dönemsel Kampanyalar & Fırsatlar Section -->
+                    <div class="card campaigns-card" style="margin-top: 30px; padding: 30px;">
+                        <div class="table-header" style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <div>
+                                <h2 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; font-weight: 800;">
+                                    <span class="material-icons-round notranslate">campaign</span>
+                                    Dönemsel Banka Kampanyaları & Sektörel Fırsatlar
+                                </h2>
+                                <p style="color: var(--text-muted); font-size: 0.85rem;">Bankaların sektörel, mesleki ve dönemsel olarak sunduğu en güncel özel fırsatlar.</p>
+                            </div>
+                            <!-- Tab buttons for categorization -->
+                            <div class="campaign-tabs" style="display: flex; gap: 8px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 12px; border: 1px solid var(--border-color);">
+                                <button class="campaign-tab-btn active" data-category="all">Tümü</button>
+                                <button class="campaign-tab-btn" data-category="kobi">KOBİ & Esnaf</button>
+                                <button class="campaign-tab-btn" data-category="mesleki">Mesleki</button>
+                                <button class="campaign-tab-btn" data-category="bireysel">Bireysel & İbadet</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Grid of Campaigns -->
+                        <div class="campaigns-grid" id="campaigns-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+                            <!-- Injected by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Intelligence View -->
+                <div id="market-intel-view" class="view hidden">
+                    <div class="portfolio-header">
+                        <h1>Executive Market Intelligence</h1>
+                        <p>Global stock indices, market sentiment monitoring, and institutional resilience advisory.</p>
+                    </div>
+
+                    <div class="risk-hero">
+                        <div class="risk-hero-overlay">
+                            <div class="risk-hero-badge">
+                                <span class="material-icons-round notranslate" style="font-size: 1rem;">gpp_maybe</span>
+                                Volatilite Uyarısı: Yüksek
+                            </div>
+                            <h2 style="font-size: 1.8rem; margin-bottom: 8px;">Küresel Piyasa Nabzı</h2>
+                            <p style="opacity: 0.8; max-width: 500px;">BIST 100 dalgalanmaları ve bölgesel kurumsal kredi temerrütleri arasındaki gerçek zamanlı korelasyon izleme.</p>
+                        </div>
+                    </div>
+
+                    <!-- Investment Instrument Category Tabs -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+                        <h2 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; font-weight: 800; margin: 0; font-size: 1.25rem;">
+                            <span class="material-icons-round notranslate">show_chart</span>
+                            Piyasa & Yatırım İzleme
+                        </h2>
+                        <div class="investment-tabs" style="display: flex; gap: 8px; background: rgba(255,255,255,0.03); padding: 4px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <button class="invest-tab-btn active" data-category="all">Tümü</button>
+                            <button class="invest-tab-btn" data-category="doviz">Döviz</button>
+                            <button class="invest-tab-btn" data-category="altin">Altın</button>
+                            <button class="invest-tab-btn" data-category="mevduat">Vadeli Mevduat</button>
+                            <button class="invest-tab-btn" data-category="hisse">Hisse Senetleri</button>
+                        </div>
+                    </div>
+
+                    <div id="investment-content-container">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+
+
+
+                    <div id="hedge-recommendation-card" class="card risk-action-card" style="border-left: 5px solid var(--warning);">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="material-icons-round notranslate" style="color: var(--warning); font-size: 2.5rem;">security</span>
+                            <div>
+                                <h3>AI Hedging Advisory</h3>
+                                <p id="hedge-advice-text">Analyzing market volatility vs. your current portfolio resilience...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions List View -->
+                <div id="transactions-list" class="view hidden">
+                    <div class="card table-card">
+                        <div class="table-header">
+                            <h2>All Transactions</h2>
+                            <div class="filters">
+                                <select id="filter-type">
+                                    <option value="all">All Types</option>
+                                    <option value="income">Income</option>
+                                    <option value="expense">Expense</option>
+                                    <option value="subscription">Uygulama Aboneliği</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body">
+                                    <!-- Rows populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Pulse & Core Architecture View -->
+                <div id="system-pulse-view" class="view hidden">
+                    <div class="portfolio-header">
+                        <h1>Sistem Nabzı: AI Decision Core</h1>
+                        <p>Real-time architectural oversight of the Market Intelligence engine and RNN-based scoring cycles.</p>
+                    </div>
+
+                    <div class="system-hero">
+                        <div class="system-hero-overlay">
+                            <div class="core-status-badge">
+                                <span class="material-icons-round notranslate" style="font-size: 1rem;">wifi_tethering</span>
+                                CORE STATUS: OPTIMAL
+                            </div>
+                            <h2 style="font-size: 2rem; margin-bottom: 8px;">Decision Core 1.0</h2>
+                            <p style="opacity: 0.8; max-width: 600px;">Merging fiber-optic data streams from BIST 100 Tick Data, Global Inflation Indices, and Live FX feeds.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                        <div class="card">
+                            <div class="table-header">
+                                <h3 style="color: var(--brand-primary);">Real-time Data Ingestion Log</h3>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">Monitoring sub-second RNN processing cycles.</p>
+                            </div>
+                            <div class="tech-log-terminal" id="system-ai-log">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3 style="margin-bottom: 20px;">Architecture Health Matrix</h3>
+                            <div class="bank-row">
+                                <span>RNN Latency (ms)</span>
+                                <span class="rate-value" style="color: var(--brand-primary);">12ms</span>
+                            </div>
+                            <div class="bank-row">
+                                <span>Data Frequency</span>
+                                <span class="rate-value" style="color: var(--info);">Tick-level</span>
+                            </div>
+                            <div class="bank-row">
+                                <span>Model Confidence</span>
+                                <span class="rate-value" style="color: var(--success);">98.4%</span>
+                            </div>
+                            <div class="bank-row">
+                                <span>Uptime Status</span>
+                                <span class="rate-value" style="color: var(--brand-primary);">100%</span>
+                            </div>
+                            <div class="risk-hero-badge" style="margin-top: 30px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: var(--info); width: auto; justify-content: center;">
+                                <span class="material-icons-round notranslate" style="font-size: 1rem;">verified_user</span>
+                                SYSTEM SECURE: AES-256 ENCRYPTED
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wealth Management View -->
+                <div id="wealth-mgmt-view" class="view hidden">
+                    <div class="portfolio-header">
+                        <h1>Wealth Management & NBW Engine</h1>
+                        <p>Identify high-propensity customers and model wealth growth against BIST 100 targets.</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+                        <div class="wealth-card">
+                            <div class="wealth-forecast-header">
+                                <div>
+                                    <h2 style="margin-bottom: 4px;">BIST 100 Growth Forecast (180d)</h2>
+                                    <p style="color: var(--text-muted); font-size: 0.85rem;">Consolidated target: <strong style="color: var(--emerald-wealth);">14,000 pts</strong></p>
+                                </div>
+                                <div class="target-pill">+12.4% Target</div>
+                            </div>
+                            <div style="height: 350px;">
+                                <canvas id="wealthForecastChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3 style="margin-bottom: 20px; color: var(--emerald-wealth);">AI Recommendation Engine (NBW)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Top HNW customers with high liquidity for equity investment.</p>
+                            
+                            <div id="hnw-recommendations-list">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 30px; border-left: 5px solid var(--emerald-wealth);">
+                        <div style="display: flex; gap: 20px; align-items: center;">
+                            <span class="material-icons-round notranslate" style="color: var(--emerald-wealth); font-size: 2.5rem;">auto_awesome</span>
+                            <div>
+                                <h3>Wealth Strategy: Equity Transition</h3>
+                                <p>System analysis indicates 85% stability in BIST 100 support levels. Recommend moving tiered deposits into managed equity funds for high-score customers.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial GPS View -->
+                <div id="financial-gps-view" class="view hidden">
+                    <div class="portfolio-header">
+                        <h1>Finansal GPS Modülü</h1>
+                        <p>Kişiselleştirilmiş akıllı yol haritanız ve hedef takibiniz.</p>
+                    </div>
+
+                    <!-- GPS Goals Selector Card -->
+                    <div id="gps-selector-card" class="card hidden" style="margin-bottom: 24px; padding: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(30, 27, 75, 0.4); backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span class="material-icons-round notranslate" style="color: var(--brand-primary); font-size: 2rem;">explore</span>
+                            <div>
+                                <h3 style="margin-bottom: 4px; color: #fff; font-size: 1.1rem; font-weight: 700;">Aktif Rotalarınız</h3>
+                                <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0;">Birden fazla hedef belirleyip aralarında geçiş yapabilirsiniz.</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <select id="gps-goal-select" style="background: rgba(30, 27, 75, 0.6); color: #fff; border: 1px solid rgba(255,255,255,0.15); padding: 10px 16px; border-radius: 8px; font-weight: 600; width: 220px; cursor: pointer; outline: none;">
+                                <!-- Dynamically populated options -->
+                            </select>
+                            <button id="gps-add-new-btn" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px; display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer;">
+                                <span class="material-icons-round notranslate" style="font-size: 1.15rem;">add_circle</span>
+                                Yeni Hedef Ekle
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- GPS Setup Card (Visible when no goal exists or during edit) -->
+                    <div id="gps-setup-card" class="card form-card">
+                        <h2 style="margin-bottom: 20px; color: var(--brand-primary); display: flex; align-items: center; gap: 10px;">
+                            <span class="material-icons-round notranslate">navigation</span>
+                            Finansal Hedefinizi Belirleyin
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+                            Gelir, gider ve birikimlerinizi analiz ederek hedefinize en hızlı ve en güvenli yoldan ulaşmanız için akıllı rotanızı hazırlayalım.
+                        </p>
+                        <form id="gps-setup-form">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label for="gps-income">Aylık Net Gelir (TL)</label>
+                                    <input type="number" id="gps-income" required placeholder="Örn. 45000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-savings">Mevcut Birikim (TL)</label>
+                                    <input type="number" id="gps-savings" required placeholder="Örn. 25000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-fixed-expense">Sabit Giderler (Kira, Fatura vb.) (TL)</label>
+                                    <input type="number" id="gps-fixed-expense" required placeholder="Örn. 15000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-variable-expense">Değişken Giderler (Gıda, Sosyal vb.) (TL)</label>
+                                    <input type="number" id="gps-variable-expense" required placeholder="Örn. 10000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-investments">Mevcut Yatırımlar (Hisse, Altın vb.) (TL)</label>
+                                    <input type="number" id="gps-investments" required placeholder="Örn. 35000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-debts">Mevcut Borçlar / Kredi Ödemeleri (TL)</label>
+                                    <input type="number" id="gps-debts" required placeholder="Örn. 5000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-risk">Risk Tercihi</label>
+                                    <select id="gps-risk" required>
+                                        <option value="dusuk" selected>Düşük Risk (Mevduat, Hazine Bonosu)</option>
+                                        <option value="orta">Orta Risk (Fonlar, Dengeli Portföy)</option>
+                                        <option value="yuksek">Yüksek Risk (Hisse Senedi, Kripto)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-goal-type">Hedef Türü</label>
+                                    <select id="gps-goal-type" required>
+                                        <option value="ev" selected>Ev Satın Alma</option>
+                                        <option value="araba">Araç Satın Alma</option>
+                                        <option value="egitim">Eğitim Fonu Oluşturma</option>
+                                        <option value="acil_durum">Acil Durum Fonu Oluşturma</option>
+                                        <option value="emeklilik">Emeklilik Birikimi</option>
+                                        <option value="tatil">Tatil Planı</option>
+                                        <option value="is_kurma">İş Kurma Sermayesi</option>
+                                        <option value="ozel">Özel Hedef</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-goal-title">Hedef Adı (Özel Adlandırın)</label>
+                                    <input type="text" id="gps-goal-title" required placeholder="Örn. Yeni Evim, Yaz Tatili">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gps-goal-amount">Hedef Tutarı (TL)</label>
+                                    <input type="number" id="gps-goal-amount" required placeholder="Örn. 500000">
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="gps-target-date">Hedef Tarih</label>
+                                    <input type="date" id="gps-target-date" required>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 24px; display: flex; gap: 12px;">
+                                <button type="submit" class="btn btn-primary" style="flex: 2; padding: 16px; font-weight: 800; font-size: 1rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                                    <span class="material-icons-round notranslate">explore</span>
+                                    ROTAYI HESAPLA VE BAŞLAT
+                                </button>
+                                <button type="button" id="gps-cancel-btn" class="btn hidden" style="flex: 1; padding: 16px; font-weight: 800; font-size: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                                    VAZGEÇ
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- GPS Active Dashboard (Visible when goal exists) -->
+                    <div id="gps-dashboard" class="hidden" style="display: flex; flex-direction: column; gap: 24px;">
+                        
+                        <!-- AI INSIGHTS NOTIFICATIONS CAROUSEL -->
+                        <div class="card alert-velocity" style="padding: 20px; border-left-width: 6px;">
+                            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                                <span class="material-icons-round notranslate" style="font-size: 2.5rem; color: var(--danger); animation: statusPulse 1.5s infinite;">notifications_active</span>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <h3 style="margin-bottom: 4px;">Akıllı Yol Yardım Bildirimi</h3>
+                                    <p id="gps-ai-notification-text" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem;">Hesaplamalar yapılıyor...</p>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button id="gps-edit-btn" class="btn btn-drilldown" style="padding: 8px 16px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                        <span class="material-icons-round notranslate" style="font-size: 1.15rem;">edit</span>
+                                        Hedefi Düzenle
+                                    </button>
+                                    <button id="gps-delete-btn" class="btn btn-drilldown" style="padding: 8px 16px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                        <span class="material-icons-round notranslate" style="font-size: 1.15rem;">delete</span>
+                                        Hedefi Sil
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MAIN ROADMAP & STATE GRID -->
+                        <div class="dashboard-grid">
+                            
+                            <!-- LEFT SIDE: VISUAL TIMELINE -->
+                            <div class="card" style="display: flex; flex-direction: column; gap: 24px; padding: 28px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-icons-round notranslate">route</span>
+                                    Finansal Navigasyon Rota Haritası
+                                </h3>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -12px;">Hedefinize giden yol haritası ve tamamlanan kilometre taşları.</p>
+                                
+                                <div class="gps-timeline">
+                                    <!-- START STEP -->
+                                    <div class="gps-step completed">
+                                        <div class="gps-step-marker">
+                                            <span class="material-icons-round notranslate">home</span>
+                                        </div>
+                                        <div class="gps-step-content">
+                                            <div class="gps-step-header">
+                                                <h4>Başlangıç Noktası (Mevcut Net Varlık)</h4>
+                                                <span class="gps-badge completed">Tamamlandı</span>
+                                            </div>
+                                            <p id="gps-step-start-val" style="font-size: 0.95rem; font-weight: 700; color: #fff;">0.00 TL</p>
+                                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Birikim, yatırımlar ve borçlar konsolide edildi.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- MILESTONE 1 -->
+                                    <div class="gps-step" id="gps-step-50k">
+                                        <div class="gps-step-marker">
+                                            <span class="material-icons-round notranslate">savings</span>
+                                        </div>
+                                        <div class="gps-step-content">
+                                            <div class="gps-step-header">
+                                                <h4>İlk Mil Taşı: 50.000 TL Tasarruf</h4>
+                                                <span class="gps-badge" id="gps-badge-50k">Bekliyor</span>
+                                            </div>
+                                            <p style="font-size: 0.75rem; color: var(--text-muted);">İlk kritik finansal hacme ulaşma eşiği.</p>
+                                            <div class="progress-bar-container" style="background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden; position: relative;">
+                                                <div id="gps-progress-50k" style="width: 0%; height: 100%; background: var(--gradient-primary); transition: width 0.4s;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- MILESTONE 2 -->
+                                    <div class="gps-step" id="gps-step-emergency">
+                                        <div class="gps-step-marker">
+                                            <span class="material-icons-round notranslate">health_and_safety</span>
+                                        </div>
+                                        <div class="gps-step-content">
+                                            <div class="gps-step-header">
+                                                <h4>Acil Durum Fonu (3 Aylık Gider)</h4>
+                                                <span class="gps-badge" id="gps-badge-emergency">Bekliyor</span>
+                                            </div>
+                                            <p id="gps-step-emergency-desc" style="font-size: 0.75rem; color: var(--text-muted);">Hedeflenen Güvence Tutarı: 0.00 TL</p>
+                                            <div class="progress-bar-container" style="background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden; position: relative;">
+                                                <div id="gps-progress-emergency" style="width: 0%; height: 100%; background: var(--gradient-primary); transition: width 0.4s;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- MILESTONE 3 -->
+                                    <div class="gps-step" id="gps-step-debt">
+                                        <div class="gps-step-marker">
+                                            <span class="material-icons-round notranslate">receipt_long</span>
+                                        </div>
+                                        <div class="gps-step-content">
+                                            <div class="gps-step-header">
+                                                <h4>Kritik Durak: Mevcut Borçların Kapatılması</h4>
+                                                <span class="gps-badge" id="gps-badge-debt">Bekliyor</span>
+                                            </div>
+                                            <p id="gps-step-debt-desc" style="font-size: 0.75rem; color: var(--text-muted);">Borç Dengeleme Analizi</p>
+                                            <div class="progress-bar-container" style="background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden; position: relative;">
+                                                <div id="gps-progress-debt" style="width: 0%; height: 100%; background: var(--gradient-primary); transition: width 0.4s;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- TARGET STEP -->
+                                    <div class="gps-step" id="gps-step-target">
+                                        <div class="gps-step-marker">
+                                            <span class="material-icons-round notranslate">stars</span>
+                                        </div>
+                                        <div class="gps-step-content">
+                                            <div class="gps-step-header">
+                                                <h4 id="gps-step-target-title">Hedef Noktası</h4>
+                                                <span class="gps-badge" id="gps-badge-target">Kilitli</span>
+                                            </div>
+                                            <p id="gps-step-target-desc" style="font-size: 0.95rem; font-weight: 700; color: #fff;">0.00 TL</p>
+                                            <p id="gps-step-target-date-label" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Tahmini Ulaşma Tarihi: Hesaplanıyor...</p>
+                                            <div class="progress-bar-container" style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; margin-top: 8px; overflow: hidden; position: relative;">
+                                                <div id="gps-progress-target" style="width: 0%; height: 100%; background: var(--gradient-primary); transition: width 0.4s;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- RIGHT SIDE: MEVCUT DURUM ANALİZİ & TAHMİN -->
+                            <div style="display: flex; flex-direction: column; gap: 24px;">
+                                <!-- STATS BOX -->
+                                <div class="card" style="padding: 24px;">
+                                    <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff;">Mevcut Finansal Kondisyon</h3>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                                            <p style="font-size: 0.75rem; color: var(--text-muted);">Aylık Net Tasarruf</p>
+                                            <h4 id="gps-stat-savings" style="font-size: 1.15rem; font-weight: 800; color: var(--brand-primary); margin-top: 4px;">0.00 TL</h4>
+                                        </div>
+                                        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                                            <p style="font-size: 0.75rem; color: var(--text-muted);">Toplam Varlık</p>
+                                            <h4 id="gps-stat-assets" style="font-size: 1.15rem; font-weight: 800; color: var(--success); margin-top: 4px;">0.00 TL</h4>
+                                        </div>
+                                        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                                            <p style="font-size: 0.75rem; color: var(--text-muted);">Borç / Varlık Oranı</p>
+                                            <h4 id="gps-stat-debt-ratio" style="font-size: 1.15rem; font-weight: 800; color: var(--danger); margin-top: 4px;">0%</h4>
+                                        </div>
+                                        <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                                            <p style="font-size: 0.75rem; color: var(--text-muted);">Nakit Akış Gücü</p>
+                                            <h4 id="gps-stat-cashflow" style="font-size: 1.15rem; font-weight: 800; color: var(--info); margin-top: 4px;">0%</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- FORECAST OVERVIEW -->
+                                <div class="card" style="padding: 24px;">
+                                    <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: #fff;">Hedef Tahmini & Projeksiyon</h3>
+                                    
+                                    <div class="bank-row">
+                                        <span>Gereken Aylık Tasarruf</span>
+                                        <span class="rate-value" id="gps-forecast-required-save" style="color: var(--brand-primary);">0.00 TL</span>
+                                    </div>
+                                    <div class="bank-row">
+                                        <span>Yıllık Beklenen Getiri Oranı</span>
+                                        <span class="rate-value" id="gps-forecast-yield" style="color: var(--success);">%0</span>
+                                    </div>
+                                    <div class="bank-row">
+                                        <span>Risk Seviyesi & Portföy</span>
+                                        <span class="rate-value" id="gps-forecast-risk-type" style="color: var(--info);">Düşük</span>
+                                    </div>
+                                    <div class="bank-row">
+                                        <span>Ulaşılabilirlik Analizi</span>
+                                        <span id="gps-forecast-feasibility" class="trend-badge trend-up">Güvenli</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+   
+                        <!-- COMPARATIVE WHAT-IF SCENARIOS -->
+                        <div class="card" style="padding: 28px;">
+                            <h3 style="color: var(--brand-primary); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+                                <span class="material-icons-round notranslate">query_stats</span>
+                                Alternatif Rotasyon ve "What-If" Senaryoları
+                            </h3>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -12px; margin-bottom: 24px;">Farklı finansal kararların hedefinize ulaşma sürenize olan doğrudan etkisini karşılaştırın.</p>
+                            
+                            <div class="nba-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                                <!-- Scenario 1 -->
+                                <div class="card nba-card" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+                                    <span class="nba-tag" style="background: var(--info); color: white;">Senaryo 1</span>
+                                    <h4 style="margin-top: 10px;">Mevcut Durum</h4>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">Harcama ve yatırım planınızı değiştirmeden devam ederseniz.</p>
+                                    <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 10px;">
+                                        <p style="font-size: 0.75rem; color: var(--text-muted);">Hedefe Ulaşma Süresi</p>
+                                        <h3 id="gps-scen1-duration" style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-top: 4px;">- ay</h3>
+                                    </div>
+                                </div>
+                                
+                                <!-- Scenario 2 -->
+                                <div class="card nba-card" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+                                    <span class="nba-tag" style="background: var(--brand-primary); color: white;">Senaryo 2</span>
+                                    <h4 style="margin-top: 10px;">%10 Tasarruf Artışı</h4>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">Değişken harcamalarınızı %10 kısıp tasarrufa yönlendirirseniz.</p>
+                                    <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 10px;">
+                                        <p style="font-size: 0.75rem; color: var(--text-muted);">Hedefe Ulaşma Süresi</p>
+                                        <h3 id="gps-scen2-duration" style="font-size: 1.4rem; font-weight: 800; color: var(--success); margin-top: 4px;">- ay</h3>
+                                    </div>
+                                </div>
+                                
+                                <!-- Scenario 3 -->
+                                <div class="card nba-card" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+                                    <span class="nba-tag" style="background: var(--warning); color: white;">Senaryo 3</span>
+                                    <h4 style="margin-top: 10px;">Yüksek Getirili Portföy</h4>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">Birikimlerinizi bir üst risk seviyesindeki araçlarda değerlendirirseniz.</p>
+                                    <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 10px;">
+                                        <p style="font-size: 0.75rem; color: var(--text-muted);">Hedefe Ulaşma Süresi</p>
+                                        <h3 id="gps-scen3-duration" style="font-size: 1.4rem; font-weight: 800; color: var(--warning); margin-top: 4px;">- ay</h3>
+                                    </div>
+                                </div>
+                                
+                                <!-- Scenario 4 -->
+                                <div class="card nba-card" style="background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+                                    <span class="nba-tag" style="background: var(--danger); color: white;">Senaryo 4</span>
+                                    <h4 style="margin-top: 10px;">Kredi / Finansman</h4>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">Finansman desteği alarak hedefinize bugün ulaşıp taksitle öderseniz.</p>
+                                    <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 10px;">
+                                        <p style="font-size: 0.75rem; color: var(--text-muted);">Aylık Taksit / Süre</p>
+                                        <h3 id="gps-scen4-duration" style="font-size: 1.05rem; font-weight: 800; color: var(--danger); margin-top: 6px; line-height: 1.2;">-</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+   
+                        <!-- RECOMMENDATIONS -->
+                        <div class="card optimization-card">
+                            <h3><span class="material-icons-round notranslate" style="color:var(--brand-primary); vertical-align: middle; margin-right: 8px;">tips_and_updates</span> GPS Akıllı Rota Önerileri (Smart Rerouting suggestions)</h3>
+                            <ul class="optimization-list" id="gps-suggestions-container">
+                                <!-- Populated dynamically by JS -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Karar Asistanı View -->
+                <div id="ai-decision-view" class="view hidden">
+                    <div class="portfolio-header">
+                        <h1>Benim Yerimde Olsan Ne Yapardın?</h1>
+                        <p>Yapay zekâ destekli finansal karar ve alternatif senaryo analiz asistanı.</p>
+                    </div>
+
+                    <!-- Setup Card -->
+                    <div id="decision-setup-card" class="card form-card">
+                        <h2 style="margin-bottom: 20px; color: var(--brand-primary); display: flex; align-items: center; gap: 10px;">
+                            <span class="material-icons-round notranslate">psychology</span>
+                            Finansal Karar Konunuzu Belirleyin
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">
+                            Kişisel finansal kondisyonunuzu ve karar vermek istediğiniz konuyu analiz ederek avantajları, dezavantajları, riskleri ve fırsatları karşılaştıralım.
+                        </p>
+                        <form id="decision-setup-form">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div class="form-group">
+                                    <label for="dec-age">Yaşınız</label>
+                                    <input type="number" id="dec-age" required placeholder="Örn. 32">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dec-income">Aylık Net Gelir (TL)</label>
+                                    <input type="number" id="dec-income" required placeholder="Örn. 45000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dec-savings">Mevcut Birikim (TL)</label>
+                                    <input type="number" id="dec-savings" required placeholder="Örn. 25000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dec-expenses">Aylık Sabit + Değişken Giderler (TL)</label>
+                                    <input type="number" id="dec-expenses" required placeholder="Örn. 25000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dec-investments">Mevcut Yatırımlar (Hisse, Altın vb.) (TL)</label>
+                                    <input type="number" id="dec-investments" required placeholder="Örn. 35000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dec-debts">Toplam Borçlar / Kredi Bakiyesi (TL)</label>
+                                    <input type="number" id="dec-debts" required placeholder="Örn. 5000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="dec-risk">Risk Tercihi</label>
+                                    <select id="dec-risk" required>
+                                        <option value="dusuk">Düşük Risk (Mevduat, Hazine Bonosu)</option>
+                                        <option value="orta" selected>Orta Risk (Fonlar, Dengeli Portföy)</option>
+                                        <option value="yuksek">Yüksek Risk (Hisse Senedi, Kripto)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="dec-goals">Finansal Hedefiniz</label>
+                                    <input type="text" id="dec-goals" required placeholder="Örn. 3 yıl içinde ev almak, borçları kapatmak">
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="dec-question">Kararsız Kaldığınız Karar Konusu (Sorunuz)</label>
+                                    <textarea id="dec-question" required placeholder="Örn. 200.000 TL param var. Arabamı yenilemek mi mantıklı yoksa yatırım yapmak mı?" style="width: 100%; height: 120px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 12px; font-family: inherit; font-size: 0.95rem; resize: none; outline: none;"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 24px;">
+                                <button type="submit" class="btn btn-primary w-100" style="padding: 16px; font-weight: 800; font-size: 1rem; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                                    <span class="material-icons-round notranslate">analytics</span>
+                                    AI ANALİZİNİ BAŞLAT
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Results Dashboard -->
+                    <div id="decision-results-dashboard" class="hidden" style="display: flex; flex-direction: column; gap: 24px;">
+                        
+                        <!-- AI INSIGHTS SUMMARIZATION CARD -->
+                        <div class="card alert-velocity" style="padding: 24px; border-left-color: var(--brand-primary); background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);">
+                            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                                <span class="material-icons-round notranslate" style="font-size: 3rem; color: var(--brand-primary); animation: statusPulse 1.8s infinite;">auto_awesome</span>
+                                <div style="flex: 1; min-width: 250px;">
+                                    <span style="background: var(--brand-primary); color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase;">Önerilen Strateji</span>
+                                    <h2 id="dec-best-option-title" style="margin-top: 8px; font-weight: 800; font-size: 1.6rem; color: #fff;">-</h2>
+                                    <p id="dec-ai-summary" style="color: var(--text-main); font-size: 1rem; line-height: 1.5; margin-top: 8px;">Analiz yapılıyor...</p>
+                                </div>
+                                <button id="dec-new-btn" class="btn btn-drilldown" style="padding: 12px 24px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                                    <span class="material-icons-round notranslate" style="font-size: 1.2rem;">refresh</span>
+                                    Yeni Karar Sor
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CORE STATS SCORECARD -->
+                        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                            <div class="card" style="padding: 20px;">
+                                <div style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">Karar Puanı</div>
+                                <div id="dec-score-value" style="font-size: 2.2rem; font-weight: 900; color: var(--brand-primary); margin-top: 8px;">-/100</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Finansal hedeflerinize uyumluluk skoru.</div>
+                            </div>
+                            <div class="card" style="padding: 20px;">
+                                <div style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">Güven Skoru</div>
+                                <div id="dec-confidence-value" style="font-size: 2.2rem; font-weight: 900; color: var(--emerald-wealth); margin-top: 8px;">-%</div>
+                                <div id="dec-confidence-badge" class="trend-badge trend-up" style="margin-top: 4px; display: inline-block; background: rgba(16, 185, 129, 0.15); color: #10b981;">Yüksek Güven</div>
+                            </div>
+                            <div class="card" style="padding: 20px;">
+                                <div style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">Tahmini Risk Seviyesi</div>
+                                <div id="dec-risk-value" style="font-size: 2.2rem; font-weight: 900; color: var(--warning); margin-top: 8px;">-</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Uzun vadeli nakit akışı ve likidite riski.</div>
+                            </div>
+                            <div class="card" style="padding: 20px;">
+                                <div style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">Beklenen 3 Yıl Kazanç/Getiri</div>
+                                <div id="dec-gain-value" style="font-size: 2.2rem; font-weight: 900; color: var(--emerald-wealth); margin-top: 8px;">-%</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Bileşik kümülatif büyüme potansiyeli.</div>
+                            </div>
+                        </div>
+
+                        <!-- MATRIX & COMPARISONS -->
+                        <div class="dashboard-grid">
+                            
+                            <!-- LEFT COLUMN: DECISION MATRIX -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                                    <span class="material-icons-round notranslate">view_list</span>
+                                    Karar Seçenek Matrisi ve Puanlama
+                                </h3>
+                                <div id="dec-matrix-container" style="display: flex; flex-direction: column; gap: 20px;">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN: DETAILED SCENARIO COMPARISON -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                                    <span class="material-icons-round notranslate">balance</span>
+                                    Seçenekler Karşılaştırmalı Analizi
+                                </h3>
+                                <div id="dec-comparative-container" style="display: flex; flex-direction: column; gap: 16px;">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACTIONS STEPS -->
+                        <div class="card" style="padding: 24px;">
+                            <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                                <span class="material-icons-round notranslate">checklist</span>
+                                Önerilen Aksiyon Adımları Yol Haritası
+                            </h3>
+                            <ul id="dec-actions-container" class="optimization-list" style="display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none;">
+                                <!-- Populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FOMO Duvarı View -->
+                <div id="fomo-wall-view" class="view hidden">
+                    <div class="portfolio-header">
+                        <h1>FOMO Duvarı</h1>
+                        <p>Kaçırılan Fırsatlar Merkezi ile geçmiş kayıplarınızı analiz edin ve kazanca dönüştürün.</p>
+                    </div>
+
+                    <!-- CORE METRICS GRID -->
+                    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                        <div class="card" style="padding: 24px; background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(244, 63, 94, 0.15) 100%); border: 1px solid rgba(239, 68, 68, 0.25);">
+                            <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Son 12 Ayda Kaçırılan Fırsatlar</div>
+                            <div id="fomo-total-loss" style="font-size: 2.6rem; font-weight: 900; color: #ef4444; margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                                <span class="material-icons-round notranslate" style="font-size: 2.2rem; animation: statusPulse 1.2s infinite;">trending_down</span>
+                                <span id="fomo-total-loss-val">14.860 TL</span>
+                            </div>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0 0;">Yatırım, kampanya ve atıl paralarınızın kümülatif kaybı.</p>
+                        </div>
+                        
+                        <div class="card" style="padding: 24px; border: 1px solid rgba(255,255,255,0.08); background: rgba(30, 27, 75, 0.3);">
+                            <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">FOMO Skoru</div>
+                            <div id="fomo-score" style="font-size: 2.6rem; font-weight: 900; color: var(--brand-primary); margin-top: 10px;">82/100</div>
+                            <div id="fomo-score-desc" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Fırsatları değerlendirme performansınız genel olarak iyi.</div>
+                        </div>
+
+                        <div class="card" style="padding: 24px; border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">
+                            <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Gelecek 12 Ay Kurtarılabilecek Tutar</div>
+                            <div id="fomo-recoverable" style="font-size: 2.6rem; font-weight: 900; color: var(--emerald-wealth); margin-top: 10px; display: flex; align-items: center; gap: 6px;">
+                                <span class="material-icons-round notranslate" style="font-size: 2rem;">trending_up</span>
+                                <span id="fomo-recoverable-val">2.500 TL</span>
+                            </div>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 6px 0 0 0;">Önerilen aksiyonlar ile geri kazanılabilecek tahmini miktar.</p>
+                        </div>
+                    </div>
+
+                    <!-- AI FOMO NOTIFICATIONS & HEATMAP GRID -->
+                    <div class="dashboard-grid" style="margin-bottom: 24px;">
+                        
+                        <!-- AI FOMO WARNING NOTIFICATIONS -->
+                        <div class="card" style="padding: 24px;">
+                            <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                                <span class="material-icons-round notranslate">notification_important</span>
+                                Yapay Zekâ Fırsat Bildirimleri
+                            </h3>
+                            <div id="fomo-notifications-container" style="display: flex; flex-direction: column; gap: 14px;">
+                                <!-- Dynamically populated alerts -->
+                            </div>
+                        </div>
+
+                        <!-- OPPORTUNITY HEATMAP -->
+                        <div class="card" style="padding: 24px;">
+                            <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+                                <span class="material-icons-round notranslate">analytics</span>
+                                Fırsat Isı Haritası (Kayıp Dağılımı)
+                            </h3>
+                            <div style="display: flex; flex-direction: column; gap: 18px;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px;">
+                                        <span>Banka Kampanyaları</span>
+                                        <span style="color: #ef4444;">%35</span>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 35%; height: 100%; background: #ef4444; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px;">
+                                        <span>Atıl Mevduat Faizi</span>
+                                        <span style="color: #f59e0b;">%25</span>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 25%; height: 100%; background: #f59e0b; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px;">
+                                        <span>Yatırım Fırsatları</span>
+                                        <span style="color: var(--brand-primary);">%20</span>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 20%; height: 100%; background: var(--brand-primary); border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px;">
+                                        <span>Kredi / Finansman Maliyeti</span>
+                                        <span style="color: #a855f7;">%15</span>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 15%; height: 100%; background: #a855f7; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px;">
+                                        <span>Gereksiz Abonelikler</span>
+                                        <span style="color: var(--text-muted);">%5</span>
+                                    </div>
+                                    <div style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 5%; height: 100%; background: rgba(255,255,255,0.2); border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI RECOMMENDATION ANALYSIS BLOCK -->
+                    <div class="card alert-velocity" style="padding: 24px; border-left-color: var(--emerald-wealth); background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%); margin-bottom: 24px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <span class="material-icons-round notranslate" style="font-size: 3rem; color: var(--emerald-wealth);">auto_awesome</span>
+                            <div style="flex: 1; min-width: 250px;">
+                                <h3 style="margin-bottom: 4px; color: #fff;">Yapay Zekâ FOMO Değerlendirmesi</h3>
+                                <p id="fomo-ai-commentary" style="color: var(--text-main); font-size: 0.95rem; line-height: 1.5; margin: 8px 0 0 0;">
+                                    Veriler analiz ediliyor...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DETAILED BREAKDOWN & OPPORTUNITIES -->
+                    <div style="display: flex; flex-direction: column; gap: 24px;">
+                        
+                        <!-- ROW 1 OF DETAILS: CAMPAIGNS, IDLE CASH, LOAN OPTIONS -->
+                        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                            
+                            <!-- 1. Kampanyalar Analiz Kartı -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.05rem;">
+                                    <span class="material-icons-round notranslate" style="color: #ef4444;">credit_card</span>
+                                    1. Kampanya Kayıp Analizi
+                                </h3>
+                                <div id="fomo-campaigns-list" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <!-- Dynamic campaigns analysis items -->
+                                </div>
+                            </div>
+                            
+                            <!-- 2. Atıl Para Analiz Kartı -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.05rem;">
+                                    <span class="material-icons-round notranslate" style="color: #f59e0b;">account_balance_wallet</span>
+                                    2. Atıl Para ve Mevduat Kaybı
+                                </h3>
+                                <div id="fomo-idle-cash-content" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <!-- Dynamic idle cash calculations -->
+                                </div>
+                            </div>
+
+                            <!-- 3. Kredi Analiz Kartı -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.05rem;">
+                                    <span class="material-icons-round notranslate" style="color: #a855f7;">price_change</span>
+                                    3. Kredi Maliyeti Fırsat Analizi
+                                </h3>
+                                <div id="fomo-loans-content" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <!-- Dynamic loans analysis -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ROW 2 OF DETAILS: INVESTMENTS, SUBSCRIPTIONS, RECOVERY MOTOR -->
+                        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+                            
+                            <!-- 4. Yatırım Analiz Kartı -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.05rem;">
+                                    <span class="material-icons-round notranslate" style="color: var(--brand-primary);">trending_up</span>
+                                    4. Yatırım ve Döviz Getiri Kaybı
+                                </h3>
+                                <div id="fomo-investments-content" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <!-- Dynamic investments comparison -->
+                                </div>
+                            </div>
+
+                            <!-- 5. Abonelik Analiz Kartı -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.05rem;">
+                                    <span class="material-icons-round notranslate" style="color: var(--text-muted);">subscriptions</span>
+                                    5. Abonelikler ve Gereksiz Harcamalar
+                                </h3>
+                                <div id="fomo-subscriptions-content" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <!-- Dynamic subscriptions waste analysis -->
+                                </div>
+                            </div>
+
+                            <!-- 6. Fırsat Kurtarma Motoru (Aksiyonlar) -->
+                            <div class="card" style="padding: 24px;">
+                                <h3 style="color: var(--brand-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 1.05rem;">
+                                    <span class="material-icons-round notranslate" style="color: var(--emerald-wealth);">tips_and_updates</span>
+                                    6. Fırsat Kurtarma Motoru (Aktif Öneriler)
+                                </h3>
+                                <ul id="fomo-recovery-list" class="optimization-list" style="display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none;">
+                                    <!-- Dynamically populated actionable recommendations -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Scenario Planner (Stress-Test Simulator) View -->
+
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
