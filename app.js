@@ -348,9 +348,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Authentication Flow ---
     let currentUser = window.db.getCurrentUser();
-    if (!currentUser) {
-        currentUser = { id: 1, name: 'Bireysel - Demo', email: 'bireysel@sri.com', password: '123' };
-    }
 
     function initApp() {
         try {

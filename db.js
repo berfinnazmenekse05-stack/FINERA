@@ -40,11 +40,6 @@ class Database {
                     localStorage.setItem(initKey, "true");
                 }
             }
-            
-            // Set default session if none exists
-            if (!this.getSession()) {
-                this.setSession("1");
-            }
         } catch (e) {
             console.error("Database initialization failed, falling back to memory:", e);
             this.useMemory = true;
@@ -186,9 +181,10 @@ class Database {
     // --- Authentication ---
     getCurrentUser() {
         const session = this.getSession();
+        if (!session) return null;
         const users = this.get('users');
-        const userId = session ? parseInt(session, 10) : 1;
-        return users.find(u => u.id === userId) || users[0] || null;
+        const userId = parseInt(session, 10);
+        return users.find(u => u.id === userId) || null;
     }
 
     login(email, password) {
