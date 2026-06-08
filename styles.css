@@ -1850,6 +1850,9 @@ body {
 
 .table-responsive {
     margin-top: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 /* Campaign Tabs */
@@ -2145,4 +2148,75 @@ select option {
     border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+/* Responsive Mobile Custom Adaptations */
+.sidebar-toggle-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.5rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    padding: 0;
+}
+.sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
 
+@media (max-width: 768px) {
+    .sidebar-toggle-btn {
+        display: inline-flex;
+    }
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 200;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    .sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 150;
+        transition: opacity 0.3s ease;
+    }
+    #view-container {
+        padding: 16px 16px 40px !important;
+    }
+    .topbar-inner {
+        padding: 0 16px !important;
+    }
+    #page-title {
+        font-size: 1.15rem !important;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .campaigns-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .calc-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .summary-cards {
+        gap: 16px !important;
+    }
+    .nba-grid {
+        gap: 16px !important;
+    }
+}

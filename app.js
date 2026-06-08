@@ -453,10 +453,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const views = document.querySelectorAll('.view');
     const pageTitle = document.getElementById('page-title');
 
+    // Mobile Sidebar Toggle Support
+    const sidebar = document.querySelector('.sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    
+    // Create overlay dynamically if it doesn't exist
+    let overlay = document.getElementById('sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'sidebar-overlay';
+        overlay.className = 'sidebar-overlay hidden';
+        document.body.appendChild(overlay);
+    }
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('hidden');
+        });
+    }
+    
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            if (sidebar) sidebar.classList.remove('open');
+            overlay.classList.add('hidden');
+        });
+    }
+
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetId = item.getAttribute('data-target');
             if (!targetId) return;
+
+            // Close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.add('hidden');
+            }
 
             // Update Active Nav
             navItems.forEach(n => n.classList.remove('active'));
