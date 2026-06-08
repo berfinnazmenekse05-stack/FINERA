@@ -2168,6 +2168,11 @@ select option {
     background: rgba(255, 255, 255, 0.05);
 }
 
+.conv-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+}
+
 @media (max-width: 768px) {
     .sidebar-toggle-btn {
         display: inline-flex;
@@ -2218,5 +2223,17 @@ select option {
     }
     .nba-grid {
         gap: 16px !important;
+    }
+    .conv-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .what-if-inputs {
+        flex-direction: column !important;
+    }
+    .auth-wrapper {
+        padding: 12px !important;
+    }
+    .auth-card {
+        padding: 24px 16px !important;
     }
 }

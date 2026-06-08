@@ -22,8 +22,8 @@ class Database {
         try {
             let users = this.get('users');
             
-            // Increment sentinel to v4 to trigger fresh seed with currency fields
-            const initKey = `${DB_PREFIX}initialized_v4`;
+            // Increment sentinel to v5 to trigger fresh seed with currency fields
+            const initKey = `${DB_PREFIX}initialized_v5`;
             let isInitialized = false;
             
             if (this.useMemory) {
@@ -38,6 +38,15 @@ class Database {
                     this.memoryStore[initKey] = "true";
                 } else {
                     localStorage.setItem(initKey, "true");
+                }
+            }
+
+            // Force clear old session once to log out demo user and show login screen
+            const migrationKey = `${DB_PREFIX}v5_session_cleared`;
+            if (!this.useMemory) {
+                if (localStorage.getItem(migrationKey) !== "true") {
+                    localStorage.removeItem(`${DB_PREFIX}session`);
+                    localStorage.setItem(migrationKey, "true");
                 }
             }
         } catch (e) {

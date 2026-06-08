@@ -1708,7 +1708,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="material-icons-round">sync_alt</span>
                         İnteraktif Döviz Çevirici
                     </h3>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; align-items: flex-end;">
+                    <div class="conv-grid" style="display: grid; gap: 15px; align-items: flex-end;">
                         <div class="calc-input-group" style="margin:0;">
                             <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Miktar</label>
                             <input type="number" id="conv-amount" value="1000" class="calc-text-input" style="background: rgba(255,255,255,0.03);">
